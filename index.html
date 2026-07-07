@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Cheeseboy Chat</title>
+       <style>
+           *{
+               padding: 0;
+               margin: 0;
+           }
+      body { margin: 20%; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+      #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; height: 3rem; box-sizing: border-box; backdrop-filter: blur(10px); }
+      .input { border: none; padding: 0 1rem; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; }
+      .input:focus { outline: none; }
+      #button { background: #333; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; padding: 5px; }
+
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages > li { padding: 0.5rem 1rem; }
+      #messages > li:nth-child(odd) { background: #efefef; }
+           .main-container {
+
+               padding: 0, 20%;
+           }
+           .banner {
+             animation: pulse 2s infinite;
+           }
+           @keyframes pulse {
+             0%{
+               font-size: 15px;
+             }
+             50% {
+               font-size: 16px;
+             }
+             100% {
+               font-size: 15px;
+             }
+           }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+<div class="banner">Try chezGPT!</div>
+    <h1>Welcome to Secure Cheeseboy Chat</h1>
+    <form id="main-form" action="/chat" method="POST">
+    <div>
+
+    <button id="button" type="submit" value="submit">Join 🧀</button>
+    </form>
+    </div>
+    <p>A judge-free zone for all of your cheesey insights. Type /help for a featurelist. Type a youtube link to listen to the audio from that video. Type /get to see who is in your lobby, /game to start a game and win a secret prize, /nick to change usernames, /dm {reciever} {message} to send a private message, and /whisper {reciever} {message} to send an anonymous private message!</p>
+
+</body>
+</html>
