@@ -1,0 +1,381 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Secure Cheeseboy Chat</title>
+        <style>
+            body {
+                margin: 0;
+                padding-bottom: 3rem;
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    Helvetica, Arial, sans-serif;
+            }
+
+            #form {
+                background: rgba(0, 0, 0, 0.15);
+                padding: 0.25rem;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                display: flex;
+                height: 3rem;
+                box-sizing: border-box;
+                backdrop-filter: blur(10px);
+            }
+            #input {
+                border: none;
+                padding: 0 1rem;
+                flex-grow: 1;
+                border-radius: 2rem;
+                margin: 0.25rem;
+            }
+            #input:focus {
+                outline: none;
+            }
+            #form > button {
+                background: #333;
+                border: none;
+                padding: 0 1rem;
+                margin: 0.25rem;
+                border-radius: 3px;
+                outline: none;
+                color: #fff;
+            }
+
+            #messages {
+                list-style-type: none;
+                margin: 0;
+                padding: 0;
+            }
+            #messages > li {
+                padding: 0.5rem 1rem;
+            }
+            #messages > li:nth-child(odd) {
+                background: #efefef;
+            }
+
+            .rainbow {
+                background: linear-gradient(
+                    90deg,
+                    red,
+                    yellow,
+                    green,
+                    blue
+                ) !important;
+                -webkit-text-fill-color: transparent !important;
+                -webkit-background-clip: text !important;
+                background-clip: text !important;
+                font-size: 17vw !important;
+                font-weight: bold !important;
+                text-align: center !important;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="chat-container">
+            <ul id="messages"></ul>
+            <form id="form" action="">
+                <input id="input" autocomplete="off" />
+                <input type="file" id="fileInput" accept="image/*" />
+                <button>Send</button>
+            </form>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/lz-string@1.4.4/libs/lz-string.min.js"></script>
+        <script src="https://www.youtube.com/iframe_api"></script>
+        <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+        <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/socket.io-stream/0.9.1/socket.io-stream.min.js"
+            integrity="sha512-LTN7WQKvmCiOWbwxE4XRu3NCRqLzkFo28vBDHVhAyKjhmorNGjtvFxQgbvAttO31Ij6An4AIXU4GVaYOC0eNpQ=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+        ></script>
+        <script>
+            window.onbeforeunload = function () {
+                socket.emit("user disconnected", name);
+            };
+            var chat_area = document.getElementById("chat-container");
+            var game = false;
+            var value = 0;
+            var clicks = 0;
+            var highest = 0;
+            var rainbow = "";
+            var users = [{ name: name, value: value }];
+            function handleGame(msg) {
+                console.log(msg.substring(19));
+            }
+            var socket = io();
+            const ss = window.ss;
+            var name = prompt("What's your username bro?");
+            if (name.includes("/")) {
+                name = name.replaceAll("/", "");
+            }
+            if (name.includes(" ")) {
+                name = name.replaceAll(" ", "_");
+            }
+
+            var messages = document.getElementById("messages");
+            var form = document.getElementById("form");
+            var input = document.getElementById("input");
+            function onYouTubeIframeAPIReady() {}
+            let player;
+            function clickedOnPlay(msg) {
+                let div = document.createElement("div");
+                div.innerHTML = `  <div id="player-wrapper" style="width:0;height:0;overflow:hidden;">
+              <div id="player"></div>
+            </div>`;
+                document.body.appendChild(div);
+                let url = msg.split(": ")[1];
+                let vid = extractVideoID(url);
+                if (!vid) return alert("Bad link!");
+
+                if (player) {
+                    player.loadVideoById(vid);
+                } else {
+                    player = new YT.Player("player", {
+                        height: "0",
+                        width: "0",
+                        videoId: vid,
+                        playerVars: {
+                            autoplay: 1,
+                            controls: 0,
+                            modestbranding: 1,
+                            rel: 0,
+                        },
+                        events: {
+                            onReady: (e) => e.target.playVideo(),
+                        },
+                    });
+                }
+                return;
+            }
+            form.addEventListener("submit", function (e) {
+                e.preventDefault();
+                const fileInput = document.getElementById("fileInput");
+                let imageInput = "";
+
+                if (input.value == "/help") {
+                    console.log(
+                        "Type /help for a featurelist. Type a youtube link to listen to the audio from that video. Type /get to see who is in your lobby, /game to start a game and win a secret prize, /nick to change usernames, /dm {reciever} {message} to send a private message, and /whisper {reciever} {message} to send an anonymous private message!",
+                    );
+                }
+
+                if (fileInput.files && fileInput.files[0]) {
+                    socket.emit("chat message", name + ": ");
+                    const file = fileInput.files[0];
+
+                    const stream = ss.createStream();
+                    ss(socket).emit("image stream", stream, {
+                        name: file.name,
+                    });
+                    console.log("stream creationgesa");
+                    console.log("Sending image...");
+                    console.log(ss);
+                    console.log(socket.connected);
+                    const blobStream = ss.createBlobReadStream(file);
+                    blobStream.pipe(stream);
+                    fileInput.value = "";
+                }
+                if (
+                    input.value &&
+                    input.value !== "/get" &&
+                    input.value !== "/game"
+                ) {
+                    socket.emit("chat message", name + ": " + input.value);
+                    input.value = "";
+                } else if (input.value === "/get") {
+                    socket.emit("get users");
+                } else if (input.value === "/game") {
+                    console.log("game started!");
+                    socket.emit("chat message", "/game" + name);
+                }
+            });
+
+            socket.emit("user joined", name);
+            socket.on("being-kicked", (usr) => {
+                if (name === usr) {
+                    window.location.href = "https://google.com";
+                }
+                if (usr === "all") {
+                    console.log("reloading!");
+                    window.location.href = "/";
+                }
+            });
+
+            socket.on("name wrong", function () {
+                name = prompt("name used! gimmie another");
+                if (name.includes("/")) {
+                    name = name.replaceAll("/", "");
+                }
+                if (name.includes(" ")) {
+                    name = name.replaceAll(" ", "_");
+                }
+                socket.emit("user joined", name);
+            });
+            function extractVideoID(url) {
+                let match = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
+                return match ? match[1] : null;
+            }
+
+            socket.on("user returned", (usrs) => {
+                console.log(usrs);
+                var item = document.createElement("li");
+                item.textContent = usrs;
+                messages.appendChild(item);
+                chat_area.scrollTo(0, document.body.scrollHeight);
+            });
+            function pause() {
+                if (player) {
+                    player.pauseVideo();
+                }
+            }
+            function resume() {
+                if (player) {
+                    player.playVideo();
+                }
+            }
+            function createRandomString(length) {
+                const chars =
+                    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+                let result = "";
+                const randomArray = new Uint8Array(length);
+                crypto.getRandomValues(randomArray);
+                randomArray.forEach((number) => {
+                    result += chars[number % chars.length];
+                });
+                return result;
+            }
+
+            socket.on("chat message", async function (msg) {
+                var item = document.createElement("li");
+                if (msg.startsWith(`${rainbow}:`)) {
+                    item.className += "rainbow";
+                }
+                item.textContent = msg;
+                if (msg.includes("youtube")) {
+                    const btn = document.createElement("button");
+                    btn.textContent = "Play music! (restarts song)";
+                    btn.addEventListener("click", () => clickedOnPlay(msg));
+                    const btn2 = document.createElement("button");
+                    btn2.textContent = "Pause music!";
+                    btn2.addEventListener("click", () => pause());
+                    const btn3 = document.createElement("button");
+                    btn3.textContent = "Resume music!";
+                    btn3.addEventListener("click", () => resume());
+                    item.appendChild(btn);
+                    item.appendChild(btn2);
+                    item.appendChild(btn3);
+                } else if (msg.includes("http")) {
+                    var newItem = document.createElement("a");
+                    newItem.textContent = msg;
+                    newItem.href = msg.split(": ")[1];
+                    item.innerHTML = "";
+                    newItem.setAttribute("target", "_blank");
+                    item.appendChild(newItem);
+                } else if (msg.includes("/game")) {
+                    console.log("game started!");
+                    const startedPerson = msg.slice(5);
+                    item.innerHTML = startedPerson + ":";
+                    item.appendChild(await createClickGame());
+                    messages.appendChild(item);
+                    await new Promise((r) => setTimeout(r, 10000));
+                    socket.emit("chat message", name + " got " + clicks);
+                    socket.emit("chat message", "/data " + name + " " + clicks);
+                    return;
+                } else if (msg.includes("/data")) {
+                    console.log("data received");
+                    console.log(msg);
+                    const data = msg.split(" ");
+                    const person = data[1];
+                    const clicks = data[2];
+                    if (Number(clicks) > highest) {
+                        console.log("new highest" + person);
+                        highest = clicks;
+                        rainbow = person;
+                    }
+                    return;
+                } else if (msg.includes("/nick") && msg.startsWith(name)) {
+                    name = createRandomString(10) + "CHEESE!!!";
+                } else if (msg.includes("/whisper")) {
+                    var command = msg.split(" ");
+                    var reciever = command[2];
+                    const message = command.slice(3).join(" ");
+                    if (reciever === name) {
+                        console.log("correct");
+                        item.innerHTML = "anonymous whisper:" + message;
+                        messages.appendChild(item);
+                        return;
+                    } else {
+                        return;
+                    }
+                } else if (msg.includes("/dm")) {
+                    var command = msg.split(" ");
+                    var sender = command[0].replace(":", "");
+                    var reciever = command[2];
+                    const message = command.slice(3).join(" ");
+                    if (reciever === name) {
+                        console.log("correct");
+                        item.innerHTML = `dm from ${sender}:` + message;
+                        messages.appendChild(item);
+                        return;
+                    } else {
+                        return;
+                    }
+                }
+                messages.appendChild(item);
+                chat_area.scrollTo(0, document.body.scrollHeight);
+            });
+
+            ss(socket).on("incoming image", (stream, data) => {
+                console.log("stream recieverong");
+                var item = document.createElement("li");
+                const parts = [];
+
+                stream.on("data", (chunk) => parts.push(chunk));
+                stream.on("end", () => {
+                    const blob = new Blob(parts);
+                    const url = URL.createObjectURL(blob);
+
+                    const img = document.createElement("img");
+                    img.src = url;
+
+                    item.appendChild(img);
+                    messages.appendChild(item);
+                    chat_area.scrollTo(0, document.body.scrollHeight);
+                });
+            });
+
+            socket.on("name right", function (msg) {
+                var item = document.createElement("li");
+                item.textContent = name + " joined";
+                messages.appendChild(item);
+                chat_area.scrollTo(0, document.body.scrollHeight);
+            });
+            socket.on("user joined", function (msg) {
+                if (msg != name) {
+                    var item = document.createElement("li");
+                    item.textContent = msg + " joined";
+                    messages.appendChild(item);
+                    chat_area.scrollTo(0, document.body.scrollHeight);
+                }
+            });
+            function increment() {
+                clicks++;
+            }
+            async function createClickGame() {
+                highest = 0;
+                clicks = 0;
+                const div = document.createElement("div");
+
+                const button = document.createElement("button");
+                button.textContent = "CHEESE";
+                button.onclick = increment;
+
+                div.appendChild(button);
+                console.log("end of clickgame");
+                return div;
+            }
+        </script>
+    </body>
+</html>
